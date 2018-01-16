@@ -63,7 +63,7 @@
     name: 'News',
       data() {
         return {
-          news: [],
+          news: {},
           errors: [],
           newsTitle: '',
           newsDesc: '',

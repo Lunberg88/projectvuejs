@@ -1,11 +1,12 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import Static from '@/components/Static.vue'
-import HelloWorld from '@/components/HelloWorld.vue'
-import News from '@/components/News.vue'
-import User from '@/components/User.vue'
-import UserDefault from '@/components/user/UserDefault.vue'
-import UserProfile from '@/components/user/UserProfile.vue'
+import Static from '@/components/Static'
+import HelloWorld from '@/components/HelloWorld'
+import News from '@/components/News'
+import User from '@/components/User'
+import UserDefault from '@/components/user/UserDefault'
+import UserProfile from '@/components/user/UserProfile'
+import Login from '@/components/Login'
 
 Vue.use(Router)
 
@@ -18,11 +19,17 @@ export default new Router({
     },
     {
       path: '/static',
-      component: Static
+      component: Static,
+      /*meta: {
+        requiresAuth: true
+      }*/
     },
     {
       path: '/news',
-      component: News
+      component: News,
+      meta: {
+        requiresAuth: true
+      }
     },
     {
       path: '/user/:username',
@@ -36,7 +43,14 @@ export default new Router({
             path: 'profile',
             component: UserProfile
           }
-      ]
+      ],
+      /*meta: {
+        requiresAuth: true
+      } */
+    },
+    {
+      path: '/login',
+      component: Login
     }
   ]
 })
