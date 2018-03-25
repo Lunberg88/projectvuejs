@@ -1,139 +1,149 @@
 <template>
 	<div class="row">
-		<div class="col-md-offset-4 col-md-4">
-			<div class="panel panel-default">
+		<div class="col-md-5 login-form">
+			<div class="panel panel-default card card-body form-auth">
 				<div class="panel-title">
 					<h3>Login Form</h3>
 				</div>
-				<div class="panel-body">
-
-					<div class="panel panel-info">
-						<div class="panel-heading">Current User Info:</div>
-						<div class="panel-body">
-							<label class="label label-info">
-								{{ isUser.id }}
-							</label><br>
-							<label class="label label-info">
-								{{ isUser.name }}
-							</label><br>
-							<label class="label label-info">
-								{{ isUser.email }}
-							</label><br>
-							<label class="label label-info">
-								{{ isUser.created_at }}
-							</label><br>
-							<label class="label label-info">
-								{{ isUser.updated_at }}
-							</label>
+				<div class="clearfix"></div>
+				<br>
+				<form @submit.prevent="login">
+					<div class="form-group row">
+						<label for="email" class="col-md-3 col-form-label">Email:</label>
+						<div class="col-md-9">
+							<input type="text" id="email" class="form-control"
+							v-model="user.email"
+							placeholder="email@example.com">
 						</div>
 					</div>
-
-					Only for auth's users!
-					<!--<p v-show="auth">Only for auth's users!</p>-->
-					<div>
-						<form @submit.prevent="login">
-							<div class="form-group">
-								<label for="email" class="col-md-2 control-label">Email:</label>
-								<div class="col-md-10">
-									<input type="text" id="email" class="form-control"
-									v-model="user.email"
-									placeholder="email@example.com">
-								</div>
-							</div>
-							<div class="form-group">
-								<label for="password" class="col-md-2 control-label">Password:</label>
-								<div class="col-md-10">
-									<input type="password" id="password" class="form-control"
-									v-model="user.password"
-									placeholder="******">
-								</div>
-							</div>
-							<div class="form-group">
-								<div class="col-md-offset-2 col-md-10">
-									<button class="btn btn-primary">Login
-									</button>
-									<button @click="getUserAuth" class="btn btn-warning">isUser</button>
-								</div>
-							</div>
-						</form>
+					<div class="form-group row">
+						<label for="password" class="col-md-3 col-form-label">Password:</label>
+						<div class="col-md-9">
+							<input type="password" id="password" class="form-control"
+							v-model="user.password"
+							placeholder="******">
+						</div>
 					</div>
-				</div>
+					<div class="form-group row">
+						<div class="col-md-12 pull-right">
+							<button class="btn btn-primary col-md-4 btn-sm">Login</button>
+						</div>
+					</div>
+				</form>
 			</div>
+			<span class="isload" v-if="isLoad">
+				<i class="fa fa-refresh fa-spin"></i>
+				<h4>Connection...</h4>
+			</span>
 		</div>
 	</div>
 </template>
 <script>
 import axios from 'axios'
-//import store from '../store'
-import Auth from '../store/auth'
-	export default {
+import store from '../store'
+
+export default {
 		data() {
 			return {
 				user: {
 					email: '',
 					password: ''
 				},
-				isUser: []
+                isLoad: false
 			}
 		},
-		
 		methods: {
 			login() {
+			    this.isLoad = true
 				let data = {
 					client_id: 2,
-					client_secret: 'DHXDZnrTflfTZFVRs8PMLUAAazzEhUUEXfu8mOD0',
+					client_secret: 'zaqeECeZpTumPALGUAljAOdkDHgW0OPcIngjq3V6',
 					grant_type: 'password',
 					username: this.user.email,
 					password: this.user.password
 				}
-				axios.post('http://localhost:8000/oauth/token', data)
+				axios.post('http://ajax_lv/oauth/token', data)
 				.then(response => {
 					if(response.data) {
-						Auth.set(response.data.access_token, response.data.expires_in + Date.now())
+					    store.commit('setToken', {
+							access_token: response.data.access_token,
+							expires_in: response.data.expires_in + Date.now()
+						})
 					}
-					console.log(response.data /*Object.keys(response.data)*/)
-					console.log(response)
+					//console.log('access_token is: ' + this.$store.state.access_token)
+                    store.dispatch('setUser', {db: response.data})
+					this.getUserAuth()
+					this.isLoad = false
 					this.$router.push('/')
 				}).catch(e => {
-					console.log('Erros: ' + e);
+				    this.isLoad = false;
+					console.log('Errors: ' + e);
 				})
 			},
 			getUserAuth() {
-				axios.get('http://localhost:8000/api/user')
+			    let headers = {headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json',
+						'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+					}
+				};
+				axios.get('http://ajax_lv/api/user', headers)
 				.then(response => {
-					this.isUser = response.data
-					console.log(response.data)
+					store.dispatch('setUserDataInfo', {data: response.data})
 				})
 				.catch(e => {
-					console.log('Login ? ' + e.request)
+					console.log('This is error: ' + e.response)
 				})
 			}
 		}
-		
-		/*
-		computed: {
-			auth() {
-				return store.state.auth
-			}
-		},
-		methods: {
-			check(user) {
-				if(!this.auth) {
-					return this.$router.push('/static')
-				}
-			}
-		},
-		created() {
-			this.check()
-		},
-		beforeUpdate() {
-			this.check()
-		}
-		*/
 	}
 </script>
 <style>
+	.login-form {
+		margin: auto;
+		position: relative;
+	}
+
 	.panel-default {
-		margin-top: 20%;
+		margin: 20% auto;
+	}
+
+	.form-auth {
+		border: 0 !important;
+	}
+
+	ul > li {
+		text-align: left;
+	}
+
+	ul > li:first-child {
+		text-align: center;
+	}
+
+	.form-group:nth-child(3) {
+		text-align: right;
+	}
+
+	.isload {
+		display: block;
+		top: 25%;
+		left: 5%;
+		position: absolute;
+		color: #788c8f;
+		background: #fff;
+		z-index: 999;
+		width: 100%;
+		padding: 50px 60px;
+		/*
+		box-shadow: 0 2px 2px 0 rgba(0,0,0,.14), 0 3px 1px -2px rgba(0,0,0,.2), 0 1px 5px 0 rgba(0,0,0,.12);
+		*/
+	}
+
+	.isload > i {
+		font-size: 64px;
+	}
+
+	.isload > h4 {
+		padding-top: 8px;
 	}
 </style>
