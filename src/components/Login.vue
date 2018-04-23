@@ -1,139 +1,141 @@
 <template>
-	<div class="row">
-		<div class="col-md-offset-4 col-md-4">
-			<div class="panel panel-default">
-				<div class="panel-title">
-					<h3>Login Form</h3>
-				</div>
-				<div class="panel-body">
-
-					<div class="panel panel-info">
-						<div class="panel-heading">Current User Info:</div>
-						<div class="panel-body">
-							<label class="label label-info">
-								{{ isUser.id }}
-							</label><br>
-							<label class="label label-info">
-								{{ isUser.name }}
-							</label><br>
-							<label class="label label-info">
-								{{ isUser.email }}
-							</label><br>
-							<label class="label label-info">
-								{{ isUser.created_at }}
-							</label><br>
-							<label class="label label-info">
-								{{ isUser.updated_at }}
-							</label>
-						</div>
-					</div>
-
-					Only for auth's users!
-					<!--<p v-show="auth">Only for auth's users!</p>-->
-					<div>
-						<form @submit.prevent="login">
-							<div class="form-group">
-								<label for="email" class="col-md-2 control-label">Email:</label>
-								<div class="col-md-10">
-									<input type="text" id="email" class="form-control"
-									v-model="user.email"
-									placeholder="email@example.com">
-								</div>
-							</div>
-							<div class="form-group">
-								<label for="password" class="col-md-2 control-label">Password:</label>
-								<div class="col-md-10">
-									<input type="password" id="password" class="form-control"
-									v-model="user.password"
-									placeholder="******">
-								</div>
-							</div>
-							<div class="form-group">
-								<div class="col-md-offset-2 col-md-10">
-									<button class="btn btn-primary">Login
-									</button>
-									<button @click="getUserAuth" class="btn btn-warning">isUser</button>
-								</div>
-							</div>
-						</form>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+  <div class="w-40 mx-auto full-width">
+    <div class="d-block mx-auto my-3 mb-4 text--center">
+      <h2>Please, Sign In</h2>
+    </div>
+    <!--
+    <div class="panel panel-default card card-body form-auth">
+      <div class="panel-title">
+        <h3>Login Form</h3>
+      </div>
+      <div class="clearfix"></div>
+      <br>
+      <form @submit.prevent="login">
+        <div class="form-group row">
+          <label for="email" class="col-md-3 col-form-label">Email:</label>
+          <div class="col-md-9">
+            <input type="text" id="email" class="form-control"
+                   v-model="user.email"
+                   placeholder="email@example.com">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label for="password" class="col-md-3 col-form-label">Password:</label>
+          <div class="col-md-9">
+            <input type="password" id="password" class="form-control"
+                   v-model="user.password"
+                   placeholder="******">
+          </div>
+        </div>
+        <div class="form-group row">
+          <div class="col-md-12 pull-right">
+            <button class="btn btn-primary col-md-4 btn-sm">Login</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    -->
+    <v-form v-model="valid" class="d-block mx-auto">
+      <v-text-field label="E-mail" v-model="user.email" :rules="emailRules" required></v-text-field>
+      <v-text-field type="password" label="password" v-model="user.password" required></v-text-field>
+      <v-btn color="primary w-100" @click="login">Login</v-btn>
+    </v-form>
+  </div>
 </template>
 <script>
 import axios from 'axios'
-//import store from '../store'
-import Auth from '../store/auth'
-	export default {
+import store from '@/store'
+import {headers, api} from '@/helpers/api'
+
+export default {
 		data() {
 			return {
 				user: {
 					email: '',
 					password: ''
 				},
-				isUser: []
+        valid: false,
+        emailRules: [
+          (v) => !!v || 'E-mail is required',
+          (v) => /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(v) || 'E-mail must be valid'
+        ],
+        isLoad: false
 			}
 		},
-		
 		methods: {
 			login() {
+        store.dispatch('globalIsLoading')
 				let data = {
 					client_id: 2,
-					client_secret: 'DHXDZnrTflfTZFVRs8PMLUAAazzEhUUEXfu8mOD0',
+					client_secret: 'dTRgSyyLoNpwbiC85W1NyYpur32ellzOZBTu5iKO',
 					grant_type: 'password',
 					username: this.user.email,
 					password: this.user.password
 				}
-				axios.post('http://localhost:8000/oauth/token', data)
+				axios.post(api.login, data)
 				.then(response => {
 					if(response.data) {
-						Auth.set(response.data.access_token, response.data.expires_in + Date.now())
+					    store.commit('setToken', {
+							access_token: response.data.access_token,
+							expires_in: response.data.expires_in + Date.now()
+						})
 					}
-					console.log(response.data /*Object.keys(response.data)*/)
-					console.log(response)
+          store.dispatch('setUser', {db: response.data})
+					this.getUserAuth()
+          store.dispatch('globalIsLoading')
 					this.$router.push('/')
 				}).catch(e => {
-					console.log('Erros: ' + e);
+          store.dispatch('globalIsLoading')
+					console.log('Errors: ' + e);
 				})
 			},
 			getUserAuth() {
-				axios.get('http://localhost:8000/api/user')
+				axios.get(api.getUserData, headers)
 				.then(response => {
-					this.isUser = response.data
-					console.log(response.data)
+					store.dispatch('setUserDataInfo', {data: response.data})
 				})
 				.catch(e => {
-					console.log('Login ? ' + e.request)
+					console.log('This is error: ' + e.response)
 				})
 			}
 		}
-		
-		/*
-		computed: {
-			auth() {
-				return store.state.auth
-			}
-		},
-		methods: {
-			check(user) {
-				if(!this.auth) {
-					return this.$router.push('/static')
-				}
-			}
-		},
-		created() {
-			this.check()
-		},
-		beforeUpdate() {
-			this.check()
-		}
-		*/
 	}
 </script>
 <style>
-	.panel-default {
-		margin-top: 20%;
+  .full-width {
+    width: 100%;
+  }
+
+	.login-form {
+		margin: auto;
+		position: relative;
 	}
+
+	.panel-default {
+		margin: 20% auto;
+	}
+
+	.form-auth {
+		border: 0 !important;
+	}
+
+	ul > li {
+		text-align: left;
+	}
+
+	ul > li:first-child {
+		text-align: center;
+	}
+
+	.form-group:nth-child(3) {
+		text-align: right;
+	}
+
+  .w-40 {
+    width: 40% !important;
+  }
+
+  .w-100 {
+    width: 100% !important;
+  }
 </style>
